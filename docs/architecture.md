@@ -12,27 +12,30 @@
 - **class-validator** — валидация запросов.
 - **@nestjs/swagger** — API-документация на `/docs`.
 - **helmet**, **@nestjs/throttler** — HTTP-заголовки безопасности и rate limit.
-- **Vitest** — unit- и интеграционные тесты (проект ESM, как и Nest 12).
+- **Vitest** + **supertest** — unit-, интеграционные и e2e-тесты (проект ESM, как и Nest 12).
 - **ESLint** + **Prettier** — линтер и форматирование.
 
 ## Модули
 
 ```
 src/
-  main.ts                   # bootstrap: логгер запросов, helmet, CORS, ValidationPipe, filter, Swagger
-  app.module.ts             # config, TypeORM, Redis, throttler, users
+  main.ts                   # bootstrap: логгер запросов, helmet, CORS, Swagger
+  app.module.ts             # config, TypeORM, Redis, users; глобальные guard, pipe, filter
   users/
     users.controller.ts     # POST /users/:id/debit, GET /users/:id/balance
     users.service.ts        # транзакция, блокировка, пересчёт, кэш
+    users.errors.ts         # доменные ошибки: 404, 409, 422, 503, расхождение пересчёта
+    idempotency-key.decorator.ts  # чтение и валидация заголовка Idempotency-Key
     entities/               # User, BalanceLedger
-    dto/debit.dto.ts
+    dto/                    # тело и ответ debit, параметр :id
   database/
     data-source.ts          # DataSource для TypeORM CLI
-    typeorm.options.ts      # общие опции подключения для приложения и CLI
+    typeorm.options.ts      # опции подключения: общие и с пулом/таймаутами для приложения
     migrations/             # схема + сид пользователя id = 1
     bigint.transformer.ts   # bigint <-> number (ADR-0001)
   common/
     redis/                  # ioredis-клиент и провайдер для кэша
+    errors/                 # ApiException и коды ошибок
     filters/                # единый формат ошибок
     middleware/             # логирование HTTP-запросов
   config/                   # валидация env
@@ -71,8 +74,9 @@ CREATE TYPE ledger_action AS ENUM ('debit', 'credit');
    - :id — целое 1..2147483647;
    - amount — целое 1..Number.MAX_SAFE_INTEGER;
    - Idempotency-Key — непустая строка до 255 символов.
-2. BEGIN.
-3. SELECT * FROM users WHERE id = :id FOR UPDATE      -> 404, если нет (ADR-0003).
+2. BEGIN; нет соединения из пула за 5 с               -> 503 SERVICE_BUSY.
+3. SELECT * FROM users WHERE id = :id FOR UPDATE      -> 404, если нет (ADR-0003);
+   не дождались за lock_timeout                        -> 503 LOCK_TIMEOUT.
 4. Поиск записи по (user_id, idempotency_key)          (ADR-0002):
    -> тот же amount: COMMIT, вернуть balance_after и id этой записи;
    -> другой amount: ROLLBACK, 422.
@@ -116,7 +120,14 @@ Redis — не источник истины: списание решается 
 | `409` | `INSUFFICIENT_FUNDS` | недостаточно средств |
 | `422` | `IDEMPOTENCY_KEY_REUSED` | ключ уже использован с другим `amount` |
 | `429` | `TOO_MANY_REQUESTS` | превышен rate limit |
+| `503` | `LOCK_TIMEOUT` | пользователь занят параллельными операциями дольше `lock_timeout`; ответ с `Retry-After` |
+| `503` | `SERVICE_BUSY` | нет свободного соединения с БД дольше 5 с; ответ с `Retry-After` |
 | `500` | `INTERNAL_ERROR` | всё непредвиденное; детали только в логах |
+
+Прочие ошибки фреймворка получают код по имени статуса: неизвестный
+маршрут — `404 NOT_FOUND`, слишком большое тело — `413 PAYLOAD_TOO_LARGE`.
+Любой `400`, включая невалидный JSON, — `VALIDATION_ERROR`; несколько
+нарушений валидации склеиваются в `message` через `; `.
 
 ## Безопасность
 
@@ -146,8 +157,9 @@ Redis — не источник истины: списание решается 
 - в каждом классе — `new Logger(ClassName.name)`, контекст виден в каждой строке;
 - уровень задаётся через `LOG_LEVEL` (`log` по умолчанию, `debug` для разработки);
 - middleware пишет строку на каждый запрос: метод, путь, статус, время ответа;
-- exception filter логирует `500` со стеком, ожидаемые `4xx` — уровнем `warn`
-  без стека;
+- exception filter логирует непредвиденные `500` со стеком (`error`),
+  перегрузку (`503 LOCK_TIMEOUT` и `SERVICE_BUSY`) — `warn` без стека,
+  причину `4xx` — `debug`: статус уже есть в строке middleware;
 - ошибки Redis — `warn` (чтение уходит в БД);
   расхождение пересчёта баланса — `error`.
 
@@ -164,13 +176,23 @@ Redis — не источник истины: списание решается 
   выводился из истории. После явной вставки `id = 1` миграция сдвигает
   последовательность (`setval`), чтобы следующий `INSERT` не упал на
   дубликате ключа. Эндпоинта пополнения нет.
+- **Пул и таймауты БД** — пул на 10 соединений, `lock_timeout` 2 с,
+  `statement_timeout` 10 с, ожидание соединения из пула — до 5 с. Поток
+  запросов к одному пользователю ждёт на `FOR UPDATE`, держа соединения
+  пула, и может ненадолго занять его целиком. Таймауты ограничивают, как
+  долго это длится: списание под блокировкой занимает миллисекунды, так что
+  2 с ожидания — уже перегрузка. Истёк `lock_timeout` — `503 LOCK_TIMEOUT`,
+  ожидание пула — `503 SERVICE_BUSY`, оба с `Retry-After`: это ожидаемая
+  перегрузка, а не сбой, и повтор с тем же `Idempotency-Key` безопасен.
+  Истёк `statement_timeout` — `500`: запрос под блокировкой не должен идти
+  10 с, это сбой. CLI миграций работает без таймаутов, чтобы долгий DDL не падал.
 - **Схема** — только через миграции, `synchronize: false`: ревьюер видит
   точный DDL.
-- **Тесты** — два уровня:
-  - unit (без Docker): `bigint.transformer` и ветки `UsersService.debit` с
-    замоканным `EntityManager` — `404`, повтор ключа, `422`, недостаток
-    средств, расхождение пересчёта;
-  - интеграционные на [Testcontainers](https://testcontainers.com/)
-    (реальные Postgres и Redis) — то, что моки не ловят: happy path,
-    параллельные `debit`, ограничения схемы, пересчёт через `SUM`,
-    инвалидация кэша. После каждого сценария проверяется инвариант из ADR-0004.
+- **Тесты** — три уровня:
+  - unit (без Docker): `bigint.transformer`, валидация env;
+  - интеграционные на [Testcontainers](https://testcontainers.com/) — то,
+    что моки не ловят: параллельные `debit`, идемпотентность под гонкой,
+    ограничения схемы, пересчёт через `SUM`, `lock_timeout`. После каждого
+    сценария проверяется инвариант из ADR-0004;
+  - e2e (supertest + Testcontainers, полный `AppModule`) — HTTP-контракт:
+    валидация, коды и формат ошибок из таблицы выше, `Retry-After`.

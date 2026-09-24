@@ -1,14 +1,16 @@
-import { Module } from '@nestjs/common';
+import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { RedisModule } from './common/redis/redis.module.js';
 import {
   type EnvironmentVariables,
   validateEnv,
 } from './config/env.validation.js';
-import { buildDataSourceOptions } from './database/typeorm.options.js';
+import { buildAppDataSourceOptions } from './database/typeorm.options.js';
+import { UsersModule } from './users/users.module.js';
 
 @Module({
   imports: [
@@ -20,7 +22,7 @@ import { buildDataSourceOptions } from './database/typeorm.options.js';
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<EnvironmentVariables, true>) =>
-        buildDataSourceOptions({
+        buildAppDataSourceOptions({
           DATABASE_HOST: config.get('DATABASE_HOST', { infer: true }),
           DATABASE_PORT: config.get('DATABASE_PORT', { infer: true }),
           DATABASE_USER: config.get('DATABASE_USER', { infer: true }),
@@ -37,7 +39,22 @@ import { buildDataSourceOptions } from './database/typeorm.options.js';
       ],
     }),
     RedisModule,
+    UsersModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  // Глобальные guard, pipe и filter заданы здесь, а не в main.ts, чтобы e2e-
+  // тесты поднимали AppModule с тем же HTTP-контрактом.
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    {
+      provide: APP_PIPE,
+      useValue: new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        stopAtFirstError: true,
+      }),
+    },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+  ],
 })
 export class AppModule {}

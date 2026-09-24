@@ -25,3 +25,26 @@ export function buildDataSourceOptions(
     synchronize: false,
   };
 }
+
+/**
+ * Опции для приложения: базовые плюс пул и таймауты. CLI миграций их не
+ * получает — долгий `CREATE INDEX` не должен падать по `statement_timeout`.
+ *
+ * Очередь к «горячему» пользователю держит соединения пула, пока ждёт на
+ * `FOR UPDATE`. `lock_timeout` ограничивает это ожидание, а
+ * `connectionTimeoutMillis` — ожидание свободного соединения остальными
+ * запросами (architecture.md#решения).
+ */
+export function buildAppDataSourceOptions(
+  env: DatabaseEnvironmentVariables,
+): DataSourceOptions {
+  return {
+    ...buildDataSourceOptions(env),
+    extra: {
+      max: 10,
+      connectionTimeoutMillis: 5_000,
+      lock_timeout: 2_000,
+      statement_timeout: 10_000,
+    },
+  };
+}

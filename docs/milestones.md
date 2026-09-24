@@ -23,14 +23,21 @@ Nest 12 распространяется только как ESM, поэтому
 (`"type": "module"`), а тесты — на Vitest вместо Jest: Jest с ESM требует
 экспериментального `--experimental-vm-modules`.
 
-## M2. Списание баланса
+## M2. Списание баланса ✅
 
 Цель: `POST /users/:id/debit` работает по [потоку запроса](architecture.md#поток-запроса-post-usersiddebit).
 
-- [ ] DTO и валидация `:id`, `amount`, `Idempotency-Key`
-- [ ] Exception filter с единым форматом ошибок
-- [ ] Транзакция с `FOR UPDATE`, идемпотентность, проверка средств
-- [ ] Запись в леджер, пересчёт через `SUM` и сверка с `balance_after`
+- [x] DTO и валидация `:id`, `amount`, `Idempotency-Key`
+- [x] Exception filter с единым форматом ошибок
+- [x] Транзакция с `FOR UPDATE`, идемпотентность, проверка средств
+- [x] Запись в леджер, пересчёт через `SUM` и сверка с `balance_after`
+- [x] Интеграционный тест: параллельные списания, идемпотентность, инвариант ADR-0004
+- [x] E2E (supertest + Testcontainers): контракт ошибок из
+  [таблицы](architecture.md#обработка-ошибок) — `400` на `:id`, `amount`,
+  `Idempotency-Key` и битый JSON, `404`, `409`, `422`, `503`, неизвестный
+  маршрут; happy path `200`
+
+Шаг 9 потока (`DEL balance:{id}`) — в M3 вместе с кэшем.
 
 ## M3. Чтение баланса и кэш
 
@@ -43,7 +50,6 @@ Nest 12 распространяется только как ESM, поэтому
 
 Цель: тесты зелёные, README соответствует коду.
 
-- [ ] Unit: `bigint.transformer`, ветки `UsersService.debit`
-- [ ] Интеграционные (Testcontainers): сценарии из [решений](architecture.md#решения)
+- [ ] Интеграционные и e2e для `GET /users/:id/balance` и кэша
 - [ ] `Dockerfile` и сервис `app` в `docker-compose.yml`: запуск одной командой `docker compose up`
 - [ ] Ручная проверка по README: запуск, `curl`, Swagger

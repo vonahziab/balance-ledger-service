@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { readFileSync } from 'node:fs';
-import { ConsoleLogger, Logger, ValidationPipe } from '@nestjs/common';
+import { ConsoleLogger, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -50,14 +50,6 @@ async function bootstrap(): Promise<void> {
   if (corsOrigins.length > 0) {
     app.enableCors({ origin: corsOrigins });
   }
-
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Balance Ledger Service')

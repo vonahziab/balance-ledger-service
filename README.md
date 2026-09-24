@@ -55,7 +55,7 @@ API — `http://localhost:3000`, Swagger — `http://localhost:3000/docs`.
 
 ```bash
 npm run test                # unit
-npm run test:integration    # Testcontainers, нужен Docker
+npm run test:integration    # интеграционные и e2e (Testcontainers), нужен Docker
 ```
 
 ## Пример

@@ -12,8 +12,11 @@ export class UserIdParamsDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value,
   )
-  @IsInt()
-  @Min(1)
+  // class-validator проверяет декораторы снизу вверх, а
+  // `stopAtFirstError` оставляет первое сообщение: `@IsInt` идёт последним,
+  // чтобы на строку ответ был «must be an integer», а не про `@Max`.
   @Max(MAX_USER_ID)
+  @Min(1)
+  @IsInt()
   id: number;
 }

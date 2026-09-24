@@ -90,6 +90,14 @@ describe('POST /users/:id/debit', () => {
     });
   });
 
+  it.each([
+    ['non-numeric :id', 'abc', { amount: 100 }, 'id must be an integer number'],
+    ['string amount', 1, { amount: '100' }, 'amount must be an integer number'],
+  ])('400 names the type error first: %s', async (_case, id, body, message) => {
+    const res = await debit(id, body, 'k').expect(400);
+    expect(res.body).toMatchObject({ message });
+  });
+
   it('404 USER_NOT_FOUND', async () => {
     const res = await debit(999, { amount: 100 }, 'k').expect(404);
     expect(res.body).toMatchObject({ code: 'USER_NOT_FOUND' });

@@ -8,9 +8,10 @@ export class DebitDto {
     minimum: 1,
     maximum: Number.MAX_SAFE_INTEGER,
   })
-  @IsInt()
-  @Min(1)
+  // `@IsInt` последним — проверяется первым (см. UserIdParamsDto).
   @Max(Number.MAX_SAFE_INTEGER)
+  @Min(1)
+  @IsInt()
   amount: number;
 }
 

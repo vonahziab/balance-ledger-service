@@ -11,7 +11,7 @@ import {
 /**
  * HTTP-контракт `POST /users/:id/debit` на полном AppModule: валидация,
  * формат ошибок из architecture.md#обработка-ошибок, заголовки ответа.
- * Бизнес-логика под гонкой — в debit.integration-spec.ts.
+ * Бизнес-логика под гонкой — в users.integration-spec.ts.
  */
 describe('POST /users/:id/debit', () => {
   let db: TestDatabase;
@@ -32,8 +32,8 @@ describe('POST /users/:id/debit', () => {
   beforeAll(async () => {
     db = await startTestDatabase();
     // ConfigModule.forRoot читает process.env при импорте AppModule, поэтому
-    // окружение задаётся до динамического импорта. Redis в M2 не нужен:
-    // приложение работает и без него.
+    // окружение задаётся до динамического импорта. Redis намеренно
+    // недоступен: приложение должно работать без него.
     Object.assign(process.env, {
       ...db.env,
       REDIS_HOST: '127.0.0.1',

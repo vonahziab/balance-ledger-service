@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -20,6 +21,7 @@ import {
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { ErrorResponseDto } from '../common/filters/error-response.dto.js';
+import { BalanceResponseDto } from './dto/balance.dto.js';
 import { DebitDto, DebitResponseDto } from './dto/debit.dto.js';
 import { UserIdParamsDto } from './dto/user-id-params.dto.js';
 import {
@@ -83,5 +85,22 @@ export class UsersController {
     @Body() { amount }: DebitDto,
   ): Promise<DebitResponseDto> {
     return this.usersService.debit(id, amount, idempotencyKey);
+  }
+
+  @Get(':id/balance')
+  @ApiOperation({
+    summary: 'Текущий баланс пользователя',
+    description:
+      'Читается из Redis-кэша, при промахе или недоступном Redis — из БД. ' +
+      'После списания кэш сбрасывается, но при гонке значение может ' +
+      'отставать не дольше TTL кэша.',
+  })
+  @ApiOkResponse({ type: BalanceResponseDto })
+  @ApiServiceUnavailableResponse({
+    type: ErrorResponseDto,
+    description: 'SERVICE_BUSY: нет свободных соединений с БД',
+  })
+  getBalance(@Param() { id }: UserIdParamsDto): Promise<BalanceResponseDto> {
+    return this.usersService.getBalance(id);
   }
 }

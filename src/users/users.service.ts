@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { DataSource, type EntityManager } from 'typeorm';
 import { bigintTransformer } from '../database/bigint.transformer.js';
 import { isLockTimeout, isPoolTimeout } from '../database/pg-errors.js';
+import { BalanceCache } from './balance-cache.js';
+import type { BalanceResponseDto } from './dto/balance.dto.js';
 import type { DebitResponseDto } from './dto/debit.dto.js';
 import {
   BalanceLedger,
@@ -19,7 +21,41 @@ import {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly balanceCache: BalanceCache,
+  ) {}
+
+  /**
+   * Текущий баланс пользователя: cache-aside по ключу `balance:{id}`
+   * (architecture.md#поток-запроса-get-usersidbalance). Без Redis читает
+   * из БД; несуществующий пользователь не кэшируется.
+   */
+  async getBalance(userId: number): Promise<BalanceResponseDto> {
+    const cached = await this.balanceCache.get(userId);
+    if (cached !== null) {
+      return { balance: cached };
+    }
+
+    let user: User | null;
+    try {
+      user = await this.dataSource.getRepository(User).findOne({
+        select: { id: true, balance: true },
+        where: { id: userId },
+      });
+    } catch (error) {
+      if (isPoolTimeout(error)) {
+        throw new ServiceBusyException();
+      }
+      throw error;
+    }
+    if (!user) {
+      throw new UserNotFoundException(userId);
+    }
+
+    await this.balanceCache.set(userId, user.balance);
+    return { balance: user.balance };
+  }
 
   /**
    * Списывает `amount` центов с баланса пользователя
@@ -28,14 +64,18 @@ export class UsersService {
    * Всё выполняется в одной транзакции под блокировкой строки пользователя
    * (ADR-0003): поиск ключа, проверка средств, запись в леджер и пересчёт
    * атомарны для пользователя. Любое исключение откатывает транзакцию.
+   *
+   * После коммита кэш баланса сбрасывается. Для повтора по ключу баланс не
+   * менялся, но различать случаи незачем: лишний `DEL` безвреден.
    */
   async debit(
     userId: number,
     amount: number,
     idempotencyKey: string,
   ): Promise<DebitResponseDto> {
+    let result: DebitResponseDto;
     try {
-      return await this.dataSource.transaction((tx) =>
+      result = await this.dataSource.transaction((tx) =>
         this.debitInTransaction(tx, userId, amount, idempotencyKey),
       );
     } catch (error) {
@@ -47,6 +87,9 @@ export class UsersService {
       }
       throw error;
     }
+
+    await this.balanceCache.invalidate(userId);
+    return result;
   }
 
   private async debitInTransaction(

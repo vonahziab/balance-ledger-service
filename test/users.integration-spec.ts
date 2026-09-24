@@ -1,3 +1,4 @@
+import type { BalanceCache } from '../src/users/balance-cache.js';
 import { UsersService } from '../src/users/users.service.js';
 import {
   BalanceMismatchError,
@@ -16,25 +17,34 @@ import {
 const USER_ID = 1;
 
 /**
- * `UsersService.debit` на реальном Postgres: то, что моки не ловят, —
+ * `UsersService` на реальном Postgres: то, что моки не ловят, —
  * блокировка строки пользователя, идемпотентность под гонкой и пересчёт
  * через `SUM`. После каждого сценария проверяется инвариант ADR-0004.
+ * Кэш — заглушка: проверяется, когда сервис его читает, пишет и сбрасывает;
+ * работа с Redis — в src/users/balance-cache.spec.ts.
  */
-describe('UsersService.debit', () => {
+describe('UsersService', () => {
   let db: TestDatabase;
   let service: UsersService;
+  const cache = {
+    get: vi.fn<BalanceCache['get']>(),
+    set: vi.fn<BalanceCache['set']>(),
+    invalidate: vi.fn<BalanceCache['invalidate']>(),
+  };
 
   beforeAll(async () => {
     db = await startTestDatabase();
-    service = new UsersService(db.dataSource);
+    service = new UsersService(db.dataSource, cache as unknown as BalanceCache);
   });
 
   afterAll(async () => {
     await db?.stop();
   });
 
-  // Сценарии независимы: каждый начинает с сидового состояния.
+  // Сценарии независимы: каждый начинает с сидового состояния и пустого кэша.
   beforeEach(async () => {
+    vi.resetAllMocks();
+    cache.get.mockResolvedValue(null);
     await db.reset();
   });
 
@@ -179,8 +189,44 @@ describe('UsersService.debit', () => {
       await expect(service.debit(USER_ID, 100, 'busy')).rejects.toBeInstanceOf(
         ServiceBusyException,
       );
+      await expect(service.getBalance(USER_ID)).rejects.toBeInstanceOf(
+        ServiceBusyException,
+      );
     } finally {
       await Promise.all(holders.map((h) => h.release()));
     }
+  });
+
+  it('invalidates the cache after a debit, but not after a rejected one', async () => {
+    await service.debit(USER_ID, 100, 'ok');
+    expect(cache.invalidate).toHaveBeenCalledExactlyOnceWith(USER_ID);
+
+    cache.invalidate.mockClear();
+    await expect(
+      service.debit(USER_ID, SEED_BALANCE, 'too-much'),
+    ).rejects.toBeInstanceOf(InsufficientFundsException);
+    expect(cache.invalidate).not.toHaveBeenCalled();
+  });
+
+  it('getBalance returns a cache hit without touching the cache further', async () => {
+    // Значение отличается от БД — значит, ответ взят из кэша.
+    cache.get.mockResolvedValue(42);
+
+    await expect(service.getBalance(USER_ID)).resolves.toEqual({ balance: 42 });
+    expect(cache.set).not.toHaveBeenCalled();
+  });
+
+  it('getBalance reads the DB on a miss and fills the cache', async () => {
+    await expect(service.getBalance(USER_ID)).resolves.toEqual({
+      balance: SEED_BALANCE,
+    });
+    expect(cache.set).toHaveBeenCalledExactlyOnceWith(USER_ID, SEED_BALANCE);
+  });
+
+  it('getBalance does not cache an unknown user', async () => {
+    await expect(service.getBalance(999)).rejects.toBeInstanceOf(
+      UserNotFoundException,
+    );
+    expect(cache.set).not.toHaveBeenCalled();
   });
 });

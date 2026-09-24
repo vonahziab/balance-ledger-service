@@ -39,17 +39,17 @@ Nest 12 распространяется только как ESM, поэтому
 
 Шаг 9 потока (`DEL balance:{id}`) — в M3 вместе с кэшем.
 
-## M3. Чтение баланса и кэш
+## M3. Чтение баланса и кэш ✅
 
 Цель: `GET /users/:id/balance` с Redis-кэшем, работает и без Redis.
 
-- [ ] Cache-aside с TTL, инвалидация после `debit`
-- [ ] Fallback на БД при ошибках Redis
+- [x] Cache-aside с TTL, инвалидация после `debit`
+- [x] Fallback на БД при ошибках Redis
 
 ## M4. Тесты и финализация
 
 Цель: тесты зелёные, README соответствует коду.
 
-- [ ] Интеграционные и e2e для `GET /users/:id/balance` и кэша
+- [x] Интеграционные и e2e для `GET /users/:id/balance` и кэша
 - [ ] `Dockerfile` и сервис `app` в `docker-compose.yml`: запуск одной командой `docker compose up`
 - [ ] Ручная проверка по README: запуск, `curl`, Swagger

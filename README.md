@@ -36,17 +36,29 @@ NestJS + TypeScript, PostgreSQL + TypeORM, Redis (кэш баланса). Биб
 
 ## Запуск
 
+Одной командой, нужен только Docker:
+
+```bash
+docker compose up --build
+```
+
+Поднимаются Postgres и Redis, затем одноразовый сервис `migrate` применяет
+миграции (схема + пользователь `id = 1` с балансом $1000), после чего
+стартует `app`. API — `http://localhost:3000`, Swagger —
+`http://localhost:3000/docs`. Порты и настройки можно переопределить в `.env`
+(`cp .env.example .env`).
+
+### Локальная разработка
+
 Требования: Node.js 22.13+ (`.nvmrc`), Docker.
 
 ```bash
 cp .env.example .env
-docker compose up -d        # Postgres + Redis
+docker compose up -d postgres redis
 npm install
 npm run migration:run       # схема + пользователь id = 1 с балансом $1000
 npm run start:dev
 ```
-
-API — `http://localhost:3000`, Swagger — `http://localhost:3000/docs`.
 
 То же через `make`: `make setup` (шаги 1–4), затем `make dev`. Остальные
 команды (`make check`, `make psql`, `make reset-db`, …) — в `make help`.

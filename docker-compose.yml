@@ -27,5 +27,40 @@ services:
       timeout: 5s
       retries: 10
 
+  # Применяет миграции и завершается; app стартует только после успеха.
+  migrate:
+    build: .
+    image: balance-ledger-service
+    command: ["node_modules/.bin/typeorm", "migration:run", "-d", "dist/database/data-source.js"]
+    environment: &db-env
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${DATABASE_USER:-postgres}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      DATABASE_NAME: ${DATABASE_NAME:-balance_ledger}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app:
+    image: balance-ledger-service
+    restart: unless-stopped
+    environment:
+      <<: *db-env
+      PORT: 3000
+      LOG_LEVEL: ${LOG_LEVEL:-log}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      THROTTLE_LIMIT: ${THROTTLE_LIMIT:-100}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      BALANCE_CACHE_TTL_SECONDS: ${BALANCE_CACHE_TTL_SECONDS:-30}
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
 volumes:
   postgres_data:

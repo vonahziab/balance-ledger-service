@@ -23,10 +23,10 @@ setup: .env install up migrate ## Первый запуск: .env, зависи�
 
 .PHONY: up
 up: .env ## Поднять Postgres и Redis, дождаться healthy
-	docker compose up -d --wait
+	docker compose up -d --wait postgres redis
 
 .PHONY: down
-down: ## Остановить Postgres и Redis
+down: ## Остановить все контейнеры
 	docker compose down
 
 .PHONY: reset-db

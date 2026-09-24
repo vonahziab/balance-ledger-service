@@ -1,14 +1,13 @@
 import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-/** Seed user balance in cents ($1000). */
+/** Баланс сидового пользователя в центах ($1000). */
 const SEED_BALANCE = 100_000;
 
 /**
- * Schema from architecture.md#модель-данных plus the fixture user `id = 1`.
+ * Схема из architecture.md#модель-данных и фикстура — пользователь `id = 1`.
  *
- * The seed balance is written together with a matching `credit` entry, so
- * `users.balance` is derivable from the ledger from the very first row
- * (ADR-0004).
+ * Сидовый баланс записывается вместе с парной `credit`-записью, чтобы
+ * `users.balance` выводился из леджера с первой же строки (ADR-0004).
  */
 export class InitialSchema1790274248883 implements MigrationInterface {
   name = 'InitialSchema1790274248883';
@@ -57,8 +56,8 @@ export class InitialSchema1790274248883 implements MigrationInterface {
        VALUES (1, 'credit', $1, $1)`,
       [SEED_BALANCE],
     );
-    // `id = 1` was inserted explicitly; move the sequence past it so the
-    // next generated id does not collide.
+    // `id = 1` вставлен явно: сдвигаем последовательность, чтобы следующий
+    // сгенерированный id не столкнулся с ним.
     await queryRunner.query(
       `SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT MAX("id") FROM "users"))`,
     );

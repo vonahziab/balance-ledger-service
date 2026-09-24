@@ -4,10 +4,11 @@ import type { NextFunction, Request, Response } from 'express';
 const logger = new Logger('HTTP');
 
 /**
- * Logs one line per request: method, path, status and response time.
+ * Пишет строку на каждый запрос: метод, путь, статус и время ответа.
  *
- * Registered with `app.use()` in `main.ts` before Swagger, so it also covers
- * `/docs` and unmatched routes, which Nest's `MiddlewareConsumer` misses.
+ * Подключается через `app.use()` в `main.ts` до Swagger, поэтому покрывает
+ * и `/docs`, и несуществующие маршруты, которые `MiddlewareConsumer` Nest
+ * пропускает.
  */
 export function requestLogger(
   req: Request,

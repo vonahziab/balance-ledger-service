@@ -1,11 +1,11 @@
 import { defineConfig } from 'vitest/config';
 
-// Integration tests use Testcontainers (Docker) and are added in M4.
+// Интеграционные тесты используют Testcontainers (Docker), основные — в M4.
 export default defineConfig({
   test: {
     globals: true,
     root: './',
-    // Decorators (class-transformer, Nest DI) read metadata via Reflect.
+    // Декораторы (class-transformer, DI Nest) читают метаданные через Reflect.
     setupFiles: ['reflect-metadata'],
     include: ['test/**/*.integration-spec.ts'],
     passWithNoTests: true,

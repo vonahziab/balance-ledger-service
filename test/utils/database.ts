@@ -11,8 +11,8 @@ export interface TestDatabase {
 }
 
 /**
- * Starts a throwaway Postgres (same image as docker-compose.yml) and applies
- * all migrations, so tests run against the real schema.
+ * Поднимает одноразовый Postgres (тот же образ, что в docker-compose.yml) и
+ * применяет все миграции, чтобы тесты шли на реальной схеме.
  */
 export async function startTestDatabase(): Promise<TestDatabase> {
   const container: StartedPostgreSqlContainer = await new PostgreSqlContainer(

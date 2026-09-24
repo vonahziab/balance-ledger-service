@@ -28,7 +28,7 @@ import { buildDataSourceOptions } from './database/typeorm.options.js';
           DATABASE_NAME: config.get('DATABASE_NAME', { infer: true }),
         }),
     }),
-    // THROTTLE_LIMIT requests per minute per IP, in-process storage
+    // THROTTLE_LIMIT запросов в минуту с IP, счётчики в памяти процесса
     // (architecture.md#безопасность).
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],

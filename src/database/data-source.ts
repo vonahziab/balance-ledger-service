@@ -7,9 +7,9 @@ import {
 } from '../config/env.validation.js';
 import { buildDataSourceOptions } from './typeorm.options.js';
 
-// DataSource for the TypeORM CLI (`npm run migration:run`). The Nest app
-// builds its own connection from the same options in AppModule. Only the
-// database variables are validated, so migrations run without Redis config.
+// DataSource для TypeORM CLI (`npm run migration:run`). Nest-приложение
+// создаёт своё подключение из тех же опций в AppModule. Проверяются только
+// переменные БД, поэтому миграции запускаются без настроек Redis.
 if (existsSync('.env')) {
   process.loadEnvFile('.env');
 }

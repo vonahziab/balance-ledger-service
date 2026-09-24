@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 import type { LogLevel } from '@nestjs/common';
 
-// Ordered from most to least severe: LOG_LEVEL enables its level and all above.
+// От самого важного к наименее: LOG_LEVEL включает свой уровень и все выше.
 export const LOG_LEVELS = [
   'fatal',
   'error',
@@ -21,7 +21,7 @@ export const LOG_LEVELS = [
   'verbose',
 ] as const satisfies readonly LogLevel[];
 
-/** Variables needed to connect to Postgres; also used by the TypeORM CLI. */
+/** Переменные для подключения к Postgres; нужны и TypeORM CLI. */
 export class DatabaseEnvironmentVariables {
   @IsString()
   @IsNotEmpty()
@@ -53,12 +53,12 @@ export class EnvironmentVariables extends DatabaseEnvironmentVariables {
   @IsIn(LOG_LEVELS)
   LOG_LEVEL: LogLevel = 'log';
 
-  // Comma-separated list of allowed origins; empty disables CORS.
+  // Разрешённые origin через запятую; пустое значение выключает CORS.
   @IsOptional()
   @IsString()
   CORS_ORIGIN?: string;
 
-  // Requests per minute per IP (architecture.md#безопасность).
+  // Запросов в минуту с одного IP (architecture.md#безопасность).
   @IsInt()
   @Min(1)
   THROTTLE_LIMIT: number = 100;
@@ -78,9 +78,9 @@ export class EnvironmentVariables extends DatabaseEnvironmentVariables {
 }
 
 /**
- * Validates `process.env`-like input against `schema` and returns typed values.
- * Throws with every invalid variable listed, so the app fails at startup
- * instead of on the first request that needs the value.
+ * Проверяет объект вида `process.env` по `schema` и возвращает типизированные
+ * значения. Ошибка перечисляет все невалидные переменные, чтобы приложение
+ * падало при старте, а не на первом запросе, которому нужно значение.
  */
 export function validateEnv<T extends object = EnvironmentVariables>(
   config: Record<string, unknown>,

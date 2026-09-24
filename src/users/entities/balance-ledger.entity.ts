@@ -19,8 +19,8 @@ export enum LedgerAction {
 }
 
 /**
- * Append-only balance history; see architecture.md#модель-данных.
- * Constraints mirror the migration, which is the source of the DDL.
+ * История баланса, только добавление; см. architecture.md#модель-данных.
+ * Ограничения повторяют миграцию — источник DDL — она.
  */
 @Entity({ name: 'balance_ledger' })
 @Unique('uq_balance_ledger_user_idempotency_key', ['userId', 'idempotencyKey'])
@@ -31,7 +31,7 @@ export enum LedgerAction {
   `"action" = 'credit' OR "idempotency_key" IS NOT NULL`,
 )
 export class BalanceLedger {
-  // `@PrimaryGeneratedColumn` does not accept a transformer.
+  // `@PrimaryGeneratedColumn` не принимает transformer.
   @PrimaryColumn({ type: 'bigint', transformer: bigintTransformer })
   @Generated('increment')
   id: number;
@@ -49,11 +49,11 @@ export class BalanceLedger {
   @Column({ type: 'enum', enum: LedgerAction, enumName: 'ledger_action' })
   action: LedgerAction;
 
-  /** Amount in cents, always positive; the sign comes from `action`. */
+  /** Сумма в центах, всегда положительная; знак задаёт `action`. */
   @Column({ type: 'bigint', transformer: bigintTransformer })
   amount: number;
 
-  /** Balance snapshot right after this entry (ADR-0002). */
+  /** Снэпшот баланса сразу после этой записи (ADR-0002). */
   @Column({
     name: 'balance_after',
     type: 'bigint',
@@ -61,7 +61,7 @@ export class BalanceLedger {
   })
   balanceAfter: number;
 
-  /** `NULL` only for the seed credit entry (ADR-0002). */
+  /** `NULL` только у сидовой `credit`-записи (ADR-0002). */
   @Column({
     name: 'idempotency_key',
     type: 'varchar',

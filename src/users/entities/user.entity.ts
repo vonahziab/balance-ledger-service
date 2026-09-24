@@ -14,8 +14,8 @@ export class User {
   id: number;
 
   /**
-   * Balance in cents. Derived from `balance_ledger` and recalculated after
-   * every operation (ADR-0004).
+   * Баланс в центах. Производное от `balance_ledger` значение,
+   * пересчитывается после каждой операции (ADR-0004).
    */
   @Column({ type: 'bigint', default: 0, transformer: bigintTransformer })
   balance: number;

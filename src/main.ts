@@ -13,13 +13,13 @@ import {
   LOG_LEVELS,
 } from './config/env.validation.js';
 
-// Resolves to the project root from both `src/` and `dist/`.
+// Указывает на корень проекта и из `src/`, и из `dist/`.
 const { version } = JSON.parse(
   readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
 ) as { version: string };
 
 async function bootstrap(): Promise<void> {
-  // Logs are buffered until the logger configured from LOG_LEVEL is attached.
+  // Логи буферизуются, пока не подключён логгер с уровнем из LOG_LEVEL.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });
@@ -33,8 +33,8 @@ async function bootstrap(): Promise<void> {
   );
 
   app.use(requestLogger);
-  // No `upgrade-insecure-requests`: the service is served over plain HTTP, and
-  // the directive would make browsers fetch Swagger UI assets over HTTPS.
+  // Без `upgrade-insecure-requests`: сервис работает по обычному HTTP, а с
+  // этой директивой браузер запрашивал бы ресурсы Swagger UI по HTTPS.
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -62,7 +62,7 @@ async function bootstrap(): Promise<void> {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Balance Ledger Service')
     .setDescription(
-      'Ledger-based balance service. All amounts are integer cents.',
+      'Сервис баланса на базе леджера. Все суммы — целые числа в центах.',
     )
     .setVersion(version)
     .build();

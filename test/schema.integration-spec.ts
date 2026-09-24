@@ -1,13 +1,13 @@
 import type { QueryRunner } from 'typeorm';
 import { startTestDatabase, type TestDatabase } from './utils/database.js';
 
-// Postgres SQLSTATE codes.
+// Коды SQLSTATE Postgres.
 const CHECK_VIOLATION = '23514';
 const UNIQUE_VIOLATION = '23505';
 
 /**
- * The schema's constraints are the last line of defence for balance
- * invariants, so they are checked directly, bypassing the application.
+ * Ограничения схемы — последний рубеж защиты инвариантов баланса, поэтому
+ * они проверяются напрямую, в обход приложения.
  */
 describe('InitialSchema migration', () => {
   let db: TestDatabase;
@@ -43,9 +43,9 @@ describe('InitialSchema migration', () => {
     });
   });
 
-  // Each test runs in a transaction that is rolled back, so tests do not
-  // see each other's rows. A rejected statement must come last: it aborts
-  // the transaction.
+  // Каждый тест идёт в транзакции, которая откатывается, поэтому тесты не
+  // видят строк друг друга. Отклонённый запрос должен быть последним: он
+  // обрывает транзакцию.
   describe('constraints', () => {
     let runner: QueryRunner;
 
@@ -157,7 +157,7 @@ describe('InitialSchema migration', () => {
     });
   });
 
-  // Last: it drops and recreates the schema.
+  // Последним: удаляет и заново создаёт схему.
   describe('down', () => {
     it('reverts cleanly and can be applied again', async () => {
       await db.dataSource.undoLastMigration();

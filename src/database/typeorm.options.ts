@@ -5,9 +5,9 @@ import { User } from '../users/entities/user.entity.js';
 import { InitialSchema1790274248883 } from './migrations/1790274248883-InitialSchema.js';
 
 /**
- * Shared by the Nest app and the TypeORM CLI (`data-source.ts`).
- * Entities and migrations are listed explicitly rather than globbed, so the
- * same options work from `src` and `dist` alike.
+ * Общие опции для Nest-приложения и TypeORM CLI (`data-source.ts`).
+ * Сущности и миграции перечислены явно, а не glob-маской, поэтому одни и те
+ * же опции работают и из `src`, и из `dist`.
  */
 export function buildDataSourceOptions(
   env: DatabaseEnvironmentVariables,
@@ -21,7 +21,7 @@ export function buildDataSourceOptions(
     database: env.DATABASE_NAME,
     entities: [User, BalanceLedger],
     migrations: [InitialSchema1790274248883],
-    // Schema changes go through migrations only (architecture.md#решения).
+    // Схема меняется только миграциями (architecture.md#решения).
     synchronize: false,
   };
 }

@@ -12,13 +12,13 @@ import type { EnvironmentVariables } from '../../config/env.validation.js';
 export const REDIS_CLIENT = Symbol('REDIS_CLIENT');
 
 /**
- * Provides a shared ioredis client under the `REDIS_CLIENT` token.
+ * Общий ioredis-клиент под токеном `REDIS_CLIENT`.
  *
- * Redis is only a cache (architecture.md#поток-запроса-get-usersidbalance),
- * so the app must start and serve requests without it: the client connects
- * in the background, and with the offline queue disabled commands fail fast
- * while disconnected (or time out if Redis stops responding) instead of
- * hanging, letting callers fall back to the DB.
+ * Redis — только кэш (architecture.md#поток-запроса-get-usersidbalance),
+ * поэтому приложение должно стартовать и обслуживать запросы без него:
+ * клиент подключается в фоне, а с выключенной offline-очередью команды без
+ * соединения сразу падают (или по таймауту, если Redis перестал отвечать),
+ * а не зависают, и вызывающий код уходит в БД.
  */
 @Global()
 @Module({
@@ -35,14 +35,14 @@ export const REDIS_CLIENT = Symbol('REDIS_CLIENT');
           port: config.get('REDIS_PORT', { infer: true }),
           enableOfflineQueue: false,
           maxRetriesPerRequest: 1,
-          // A connected but unresponsive Redis must not stall requests.
+          // Подключённый, но не отвечающий Redis не должен тормозить запросы.
           commandTimeout: 500,
-          // Keep reconnecting with backoff, capped at 5 s.
+          // Переподключение с нарастающей паузой, не больше 5 с.
           retryStrategy: (times) => Math.min(times * 200, 5_000),
         });
 
-        // Without an error listener ioredis would emit unhandled errors.
-        // Log each outage once rather than on every reconnect attempt.
+        // Без обработчика error ioredis выбрасывал бы необработанные ошибки.
+        // Каждый сбой логируется один раз, а не на каждой попытке переподключения.
         let healthy = true;
         client.on('ready', () => {
           healthy = true;
@@ -51,8 +51,8 @@ export const REDIS_CLIENT = Symbol('REDIS_CLIENT');
         client.on('error', (err: NodeJS.ErrnoException) => {
           if (healthy) {
             healthy = false;
-            // Connection failures to `localhost` arrive as an AggregateError
-            // with an empty message; the code (ECONNREFUSED) is what matters.
+            // Ошибки подключения к `localhost` приходят как AggregateError с
+            // пустым message; важен code (ECONNREFUSED).
             const reason = err.message || err.code || 'unknown error';
             logger.warn(`Unavailable, cache is bypassed: ${reason}`);
           }

@@ -1,11 +1,11 @@
 import type { ValueTransformer } from 'typeorm';
 
 /**
- * Maps Postgres `bigint` (returned by `pg` as a string) to a JS `number`.
+ * Переводит Postgres `bigint` (`pg` отдаёт его строкой) в JS `number`.
  *
- * Money is stored in integer cents (ADR-0001). Values beyond
- * `Number.MAX_SAFE_INTEGER` would silently lose precision, so reading one
- * is treated as data corruption and throws instead.
+ * Деньги хранятся в целых центах (ADR-0001). Значения больше
+ * `Number.MAX_SAFE_INTEGER` молча потеряли бы точность, поэтому такое
+ * значение считается порчей данных и вызывает исключение.
  */
 export const bigintTransformer = {
   to(value: number | null | undefined): number | null | undefined {

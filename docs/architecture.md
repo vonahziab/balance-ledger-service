@@ -12,12 +12,14 @@
 - **class-validator** — валидация запросов.
 - **@nestjs/swagger** — API-документация на `/docs`.
 - **helmet**, **@nestjs/throttler** — HTTP-заголовки безопасности и rate limit.
+- **Vitest** — unit- и интеграционные тесты (проект ESM, как и Nest 12).
+- **ESLint** + **Prettier** — линтер и форматирование.
 
 ## Модули
 
 ```
 src/
-  main.ts                   # bootstrap: helmet, CORS, ValidationPipe, filter, Swagger
+  main.ts                   # bootstrap: логгер запросов, helmet, CORS, ValidationPipe, filter, Swagger
   app.module.ts             # config, TypeORM, Redis, throttler, users
   users/
     users.controller.ts     # POST /users/:id/debit, GET /users/:id/balance
@@ -26,6 +28,7 @@ src/
     dto/debit.dto.ts
   database/
     data-source.ts          # DataSource для TypeORM CLI
+    typeorm.options.ts      # общие опции подключения для приложения и CLI
     migrations/             # схема + сид пользователя id = 1
     bigint.transformer.ts   # bigint <-> number (ADR-0001)
   common/
@@ -123,9 +126,10 @@ Redis — не источник истины: списание решается 
   `Strict-Transport-Security` и др.), убирает `X-Powered-By`.
 - **CORS** — разрешённые origin из `CORS_ORIGIN` (список через запятую);
   по умолчанию CORS выключен.
-- **Rate limit** — `@nestjs/throttler`, глобально 100 запросов в минуту с
-  IP, превышение — `429`. Счётчики в памяти процесса: для одного инстанса
-  этого достаточно, при масштабировании хранилище переносится в Redis.
+- **Rate limit** — `@nestjs/throttler`, глобально `THROTTLE_LIMIT` (100)
+  запросов в минуту с IP, превышение — `429`. Счётчики в памяти процесса:
+  для одного инстанса этого достаточно, при масштабировании хранилище
+  переносится в Redis.
 - **Валидация** — глобальный `ValidationPipe` с `whitelist` и
   `forbidNonWhitelisted`: лишние поля в теле — `400`, а не молча
   игнорируются. Размер тела ограничен лимитом Express по умолчанию (100 КБ).

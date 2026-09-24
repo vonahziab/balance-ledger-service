@@ -7,16 +7,21 @@
 - [x] ТЗ, архитектура, ADR
 - [x] `docker-compose.yml` (Postgres + Redis), `.env.example`, `.nvmrc`
 
-## M1. Каркас и база данных
+## M1. Каркас и база данных ✅
 
 Цель: `npm run migration:run` поднимает схему и фикстуру, сервер стартует.
 
-- [ ] Nest-проект: TypeScript, ESLint/Prettier, Jest, npm-скрипты из README
-- [ ] Валидация env при старте
-- [ ] TypeORM: сущности, `bigint.transformer`, миграция схемы, сид `id = 1`
-- [ ] Redis-клиент
-- [ ] `main.ts`: helmet, CORS, `ValidationPipe`, Swagger, логгер
-- [ ] Rate limit (`@nestjs/throttler`)
+- [x] Nest-проект: TypeScript, ESLint/Prettier, Vitest, npm-скрипты из README
+- [x] Валидация env при старте
+- [x] TypeORM: сущности, `bigint.transformer`, миграция схемы, сид `id = 1`
+- [x] Redis-клиент
+- [x] `main.ts`: helmet, CORS, `ValidationPipe`, Swagger, логгер
+- [x] Rate limit (`@nestjs/throttler`)
+- [x] Интеграционный тест схемы (Testcontainers): сид, ограничения, `down`
+
+Nest 12 распространяется только как ESM, поэтому проект — ESM
+(`"type": "module"`), а тесты — на Vitest вместо Jest: Jest с ESM требует
+экспериментального `--experimental-vm-modules`.
 
 ## M2. Списание баланса
 

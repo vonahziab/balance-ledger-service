@@ -36,7 +36,7 @@ NestJS + TypeScript, PostgreSQL + TypeORM, Redis (кэш баланса). Биб
 
 ## Запуск
 
-Требования: Node.js 22+ (`.nvmrc`), Docker.
+Требования: Node.js 22.13+ (`.nvmrc`), Docker.
 
 ```bash
 cp .env.example .env
@@ -47,6 +47,9 @@ npm run start:dev
 ```
 
 API — `http://localhost:3000`, Swagger — `http://localhost:3000/docs`.
+
+То же через `make`: `make setup` (шаги 1–4), затем `make dev`. Остальные
+команды (`make check`, `make psql`, `make reset-db`, …) — в `make help`.
 
 ## Тесты
 
